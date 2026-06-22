@@ -19,6 +19,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.staticfiles import StaticFiles as StarletteStaticFiles
 
 from app.core.config import settings
 from app.core.security import require_admin, require_module
@@ -418,10 +419,30 @@ app.include_router(help_router.router, prefix="/api", tags=["help"])
 _CLIENT_DIST = settings.root_dir / "client" / "dist"
 
 
+class JavaScriptStaticFiles(StaticFiles):
+    """StaticFiles with correct MIME type for .js files (application/javascript).
+
+    The default StaticFiles maps .js to 'application/x-js', but ES modules
+    require 'application/javascript' per HTML spec strict MIME checking.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Override the default .js MIME type to the correct one for ES modules
+        self.js_mime_type = "application/javascript; charset=utf-8"
+
+    def file_response(self, path: Path, stat_result: os.stat_result) -> FileResponse:
+        response = super().file_response(path, stat_result)
+        # Fix MIME type for JavaScript files
+        if path.suffix == ".js":
+            response.media_type = self.js_mime_type
+        return response
+
+
 if _CLIENT_DIST.exists():
     _ASSETS = _CLIENT_DIST / "assets"
     if _ASSETS.exists():
-        app.mount("/assets", StaticFiles(directory=_ASSETS), name="assets")
+        app.mount("/assets", JavaScriptStaticFiles(directory=_ASSETS), name="assets")
 
     @app.get("/favicon.ico", include_in_schema=False)
     async def _favicon() -> FileResponse:
