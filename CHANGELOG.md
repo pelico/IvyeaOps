@@ -6,6 +6,20 @@
 
 ---
 
+## [v1.13.9] - 2026-09-08
+
+### 修复
+
+- **Windows 免-Python 包（`IvyeaOpsServer.exe`）打开后只剩背景、前端模块加载失败。**
+  浏览器控制台报 `Failed to load module script ... MIME type of "application/x-js"`：
+  Windows 注册表常把 `.js` 关联成 `application/x-js`（JSFile 注册项引入），而它
+  **不在** HTML spec 允许的 module-script MIME 类型里，浏览器对
+  `<script type="module">` 做严格 MIME 校验直接拒绝执行 —— 于是 `client/dist/assets/*.js`
+  一个都没加载，页面只剩 CSS 背景。冻结 exe 经 `mimetypes.guess_type()` 继承了那张表，
+  正是这次 Windows 包才暴露、Linux/macOS 与开发态 Vite 一直没事的原因。后端启动时
+  显式把 `.js` / `.mjs` 注册为 `text/javascript`（spec 允许、与 Vite 一致），三个平台
+  一并修掉。
+
 ## [v1.13.8] - 2026-09-04
 
 ### 修复

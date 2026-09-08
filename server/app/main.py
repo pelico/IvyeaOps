@@ -664,6 +664,15 @@ _CLIENT_DIST = settings.root_dir / "client" / "dist"
 # register it once here instead of hard-coding a media_type at each call site.
 mimetypes.add_type("font/woff2", ".woff2")
 mimetypes.add_type("font/woff", ".woff")
+# `.js` / `.mjs`: on Windows the registry often maps .js to `application/x-js`
+# (via the JSFile association), and the frozen exe inherits that table through
+# mimetypes.guess_type(). `application/x-js` is NOT in the HTML spec's allowed
+# list of module-script MIME types, so the browser refuses to execute
+# `<script type="module">` assets — the page loads only the background and the
+# console shows "Failed to load module script ... MIME type of application/x-js".
+# Force the spec-allowed `text/javascript` for both extensions on every platform.
+mimetypes.add_type("text/javascript", ".js")
+mimetypes.add_type("text/javascript", ".mjs")
 
 
 if _CLIENT_DIST.exists():
